@@ -1,0 +1,24 @@
+class Main 
+{ 
+public: 
+Main(); 
+~Main(); 
+void GameLoop(); 
+void WriteText(); 
+void InputText(); 
+void menu(); 
+void information(); 
+void sound(int x,int y); 
+bool lvl_pause(int x, int y); 
+void victory(int x, int y); 
+private: 
+bool quit,play_music; 
+Setup* setup; 
+Level* lvl; 
+TTF_Font *gFont; 
+Sprite* back, *play, *pause, *exit, *volume, *resume, 
+*pause_screen, *massage, *new_game, *load_game, 
+*save_massage, *yes, *no,*main_menu,*info,*save,*results; 
+Sprite* myHero; 
+FILE *file_out; 
+}; 
