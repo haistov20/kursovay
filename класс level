@@ -1,0 +1,41 @@
+class Level 
+{ 
+public: 
+Level(Setup* passed_setup); 
+~Level(); 
+int click, lvl_num; 
+bool final = false; 
+void draw(int i); 
+void update(); 
+void lvl_0(); 
+void lvl_1(); 
+void lvl_2(); 
+void lvl_3(); 
+void lvl_4(); 
+void lvl_5(); 
+void lvl_6(); 
+void lvl_7(); 
+void lvl_8(); 
+void lvl_9(); 
+void victory(); 
+void writeText(int x, int y,int h, int w, int r, int g, int b); 
+bool mousePos(); 
+private: 
+bool try_again[10]; 
+Sprite* lvl[LVL], *lava[LAVA], *fire[FIRE], *you_click[CLICK]; 
+Sprite* bat; 
+Bomerang* bomerang; 
+Sprite* arrow[ARROW]; 
+Sprite* platform[PLATFORM]; 
+Sprite *ledder[LEDDER], *bomb[BOMB], *ghost; 
+Sprite* spike; 
+Sprite* boss, *hp_metr, *hp[HP], *rock[ROCK], *Victory; 
+Player* player; 
+Setup* setup; 
+Mix_Music *music, *vik; 
+Mix_Chunk *bomerang_effect, *ghost_effect,*hurt, 
+*boss_dead,*jumpB; 
+int timeCheck; 
+bool die, shoot, run; 
+
+}; 
