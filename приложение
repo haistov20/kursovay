@@ -1,0 +1,10 @@
+MyGame.cpp 
+#include "includes.h" 
+#include "main.h" 
+
+int main(int argc, char *argv[]) 
+{ 
+Main _main; 
+_main.menu(); 
+return 0; 
+} 
