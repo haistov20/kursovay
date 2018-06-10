@@ -180,3 +180,56 @@ SDL_Window* window;
 SDL_Renderer* render; 
 SDL_Event* event; 
 }; 
+setup.cpp 
+#include "includes.h" 
+#include "setup.h" 
+
+
+Setup::Setup(bool* quit) 
+{ 
+SDL_Init(SDL_INIT_EVERYTHING); 
+window = NULL; 
+window = SDL_CreateWindow("One Button Bob", 150, 30, SCREEN_W, SCREEN_H, SDL_WINDOW_SHOWN); 
+if (window == NULL) { 
+printf("Error: cant create the window\n"); 
+*quit = true; 
+} 
+render = NULL; 
+render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED); 
+event = new SDL_Event(); 
+if (Mix_OpenAudio(22050, MIX_DEFAULT_FORMAT, 2, 4096) == -1) { 
+puts("Error: can`t Mix_OpenAudio"); 
+*quit = true; 
+
+} 
+} 
+
+
+Setup::~Setup() 
+{ 
+SDL_DestroyWindow(window); 
+SDL_DestroyRenderer(render); 
+Mix_CloseAudio(); 
+delete event; 
+} 
+
+SDL_Renderer * Setup::getRender() 
+{ 
+return render; 
+} 
+
+SDL_Event * Setup::getEvent() 
+{ 
+return event; 
+} 
+
+void Setup::begin() 
+{ 
+SDL_PollEvent(event); 
+SDL_RenderClear(render); 
+} 
+
+void Setup::end() 
+{ 
+SDL_RenderPresent(render); 
+} 
