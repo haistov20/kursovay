@@ -233,4 +233,577 @@ void Setup::end()
 { 
 SDL_RenderPresent(render); 
 } 
+player.h
+#pragma once
+#include "sprite.h"
+#include "setup.h"
+#include "bomerang.h"
+class Player
+{
+public:
+	Player();
+	Player(Setup* passed_setup);
+	~Player();
+	void draw();
+	void udpate(int i);
+	int getX();
+	int getY();
+	void setX(int x);
+	void setY(int y);
+	bool die(bool die, Sprite* passed_sprite);
+	void run(bool run,int side);
+	bool jump(int k,bool jump,bool draw, bool restart);
+private:
+	Sprite* myHero;
+	Setup* setup;
+	Sprite* map;
+	Sprite* meter;
+	Sprite* red[6];
+	Mix_Chunk *die_effect= NULL;
+	Mix_Chunk *jump_effect = NULL;
+	int timeCheck;
+	int lvl_num;
+
+};
+
+
+player.cpp
+#include "includes.h"
+#include "player.h"
+
+
+Player::Player()
+{
+}
+
+Player::Player(Setup* passed_setup)
+{
+	setup = passed_setup;
+	myHero = new Sprite(setup->getRender(), "Data/img/hero.png", 0, START_HERO_POSY, 19 * INCREASE_HERO_Y, 18 * INCREASE_HERO_X);
+	myHero->setUpAnimation(6, 3);
+	meter = new Sprite(setup->getRender(), "Data/img/force_meter.png", getX() + 40, getY() - 20, (13 * 7) - 3, 4 * 5);
+	for (int i = 0; i < 6; i++)
+		red[i] = new Sprite(setup->getRender(), "Data/img/red.png", meter->getX() + 7, meter->getY() + 5, 5 * 5, 2 * 5);
+	timeCheck = SDL_GetTicks();
+	lvl_num = 0;
+	die_effect= Mix_LoadWAV("Data/audio/dead.wav ");
+	if (die_effect == NULL) puts("Can`t open Data/audio/dead.wav");
+	jump_effect = Mix_LoadWAV("Data/audio/Jump.wav ");
+	if (die_effect == NULL)  puts("Can`t open Data/audio/Jump.wav");
+	Mix_VolumeChunk(jump_effect, MIX_MAX_VOLUME / 2);
+
+}
+
+
+Player::~Player()
+{
+	delete setup;
+	delete myHero;
+	delete meter;
+	delete map;
+	for (int i = 0; i < 6; i++)
+		delete red[i];
+	Mix_FreeChunk(die_effect);
+	Mix_FreeChunk(jump_effect);
+}
+
+void Player::draw()
+{
+	myHero->draw();
+}
+
+void Player::udpate(int i)
+{
+	double angle = 0;
+	myHero->playAnimation(0, 1, i, 200);
+	myHero->draw();
+
+}
+
+int Player::getX()
+{
+	return myHero->getX();
+}
+
+int Player::getY()
+{
+	return myHero->getY();
+}
+
+void Player::setX(int x)
+{
+	myHero->setX(x);
+}
+
+void Player::setY(int y)
+{
+	myHero->setY(y);
+}
+
+bool Player::die(bool die, Sprite* passed_sprite)
+{
+	map = passed_sprite;
+	static bool shake = true;
+	static int shake_num = 0, play_effect = true;
+	if (die)
+	{
+		if (play_effect)
+		{
+			Mix_PlayChannel(-1, die_effect, 0);
+			play_effect = false;
+		}
+		if (shake && shake_num <= 3)
+		{
+			map->setY(map->getY() + 2);
+				if (map->getY() >= 10) shake = false;
+		}
+		else if (shake_num < 3)
+		{
+			map->setY(map->getY() - 2);
+			if (map->getY() <= -10)
+			{
+				shake = true; shake_num++;
+			}
+
+		}
+		if (myHero->playAnimation(0, 5, 1, 75) )
+		{
+			myHero->setPosition(0, START_HERO_POSY);
+			map->setY(0);
+			shake_num = 0; play_effect = true;
+			return true;
+		} 	
+	}
+	
+	return false;
+}
+
+void Player::run(bool run,int side)
+{
+	if (run)
+	{
+		if (timeCheck + 10 < SDL_GetTicks())
+		{
+			myHero->setX(myHero->getX() + (2*side));
+			timeCheck = SDL_GetTicks();
+		}
+	}
+}
+
+bool Player::jump(int k, bool jump,bool draw,bool restart)
+{	
+
+	static bool do_it = true, play_effect = true;
+	if (restart)
+	{
+		do_it = true;
+		play_effect = true;
+	}
+	int dest = (25 * k);
+	if (draw)
+	{
+		meter->setPosition(getX() + 40, getY() - 20);
+		meter->draw();
+		red[0]->setPosition(meter->getX() + 7, meter->getY() + 5);
+		for (int i = 0; i < k; i++)
+		{
+			if (i != 0) red[i]->setPosition(red[i - 1]->getX() + 10, red[i - 1]->getY());
+			red[i]->draw();
+		}
+	}
+	if (jump) {
+		if (play_effect) {
+			Mix_PlayChannel(-1, jump_effect, 0);
+			play_effect = false;
+		}
+		if (do_it)
+		{
+			if (START_HERO_POSY - getY() >= dest) do_it = false;
+			else {
+				if (timeCheck + 4 < SDL_GetTicks())
+				{
+					setY(getY() - 3);
+					setX(getX() + 2);
+					timeCheck = SDL_GetTicks();
+				}
+				
+			}
+			
+			
+		}
+		else {
+			if (START_HERO_POSY - getY() <= 0)
+			{
+				do_it = true; play_effect = true;
+				return true;
+			}
+			else
+			{
+				if (timeCheck + 4 < SDL_GetTicks())
+				{
+					setY(getY() + 3);
+					setX(getX() + 2);
+					timeCheck = SDL_GetTicks();
+				}
+				
+			}
+			
+		}
+	}
+
+	return false;
+	
+}
+
+main.h
+#pragma once
+#include "sprite.h"
+#include "setup.h"
+#include "level.h"
+
+class Main
+{
+public:
+	Main();
+	~Main();
+	void GameLoop();
+	void menu();
+	void sound(int x,int y);
+	bool lvl_pause(int x, int y);
+	void victory(int x, int y);
+private:
+	bool quit;
+	Setup* setup;
+	Level* lvl;
+	Sprite* back, *play, *pause, *exit, *volume, *resume,
+		*pause_screen, *massage, *new_game, *load_game,
+		*save_massage, *yes, *no;
+	Sprite* myHero;
+	FILE *file_out;
+};
+
+
+main.cpp
+#include "includes.h"
+#include "main.h"
+#include <cstdio>
+
+
+Main::Main()
+{
+	quit = false;
+	setup = new Setup(&quit);
+	lvl = new Level(setup);
+	back = new Sprite(setup->getRender(),"Data/img/bg.png", 0, 0, SCREEN_W, SCREEN_H);
+	play = new Sprite(setup->getRender(), "Data/img/play.png", SCREEN_W/2.5 - 15, SCREEN_H/8,280, 200);
+	exit = new Sprite(setup->getRender(), "Data/img/exit.png", SCREEN_W / 2.5 - 15, SCREEN_H /8 + 150, 280, 200);
+	play->setUpAnimation(2, 1); exit->setUpAnimation(2, 1);
+
+	myHero = new Sprite(setup->getRender(), "Data/img/hero.png", 0, START_HERO_POSY, 19 * INCREASE_HERO_Y, 18 * INCREASE_HERO_X);
+	myHero->setUpAnimation(6, 3);
+
+	volume= new Sprite(setup->getRender(), "Data/img/volume.png", SCREEN_W  - 85, -17 , 53, 87);
+	volume->setUpAnimation(3, 1);
+	pause = new Sprite(setup->getRender(), "Data/img/pause_button.png", SCREEN_W - 140, -15, 53, 87);
+	pause->setUpAnimation(2, 1);
+
+	resume = new Sprite(setup->getRender(), "Data/img/resume.png", SCREEN_W / 6 + 30, SCREEN_H /1.6, 280, 200);
+	resume->setUpAnimation(2, 1);
+	pause_screen = new Sprite(setup->getRender(), "Data/img/pause.png", 0, 0, SCREEN_W, SCREEN_H);
+
+	massage = new Sprite(setup->getRender(), "Data/img/massage.png",150, 70, 900*0.8, 600*0.8);
+	new_game = new Sprite(setup->getRender(), "Data/img/new_game.png", 320,250, 280 * 0.7, 200 * 0.7);
+	new_game->setUpAnimation(2, 1);
+	load_game = new Sprite(setup->getRender(), "Data/img/load_game.png", 530, 250, 280*0.7, 200 * 0.7);
+	load_game->setUpAnimation(2, 1);
+
+	save_massage = new Sprite(setup->getRender(), "Da-ta/img/save_massage.png", 0, 0, SCREEN_W, SCREEN_H);
+	yes = new Sprite(setup->getRender(), "Data/img/yes.png", 370, 267, 247 * 0.5, 400 * 0.5);
+	yes->setUpAnimation(2, 1);
+	no = new Sprite(setup->getRender(), "Data/img/no.png", 550, 265, 247 * 0.5, 400 * 0.5);
+	no->setUpAnimation(2, 1);
+	
+}
+
+
+Main::~Main()
+{
+	delete play;
+	delete exit;
+	delete volume;
+	delete	pause;
+	delete setup;
+	delete lvl;
+	delete myHero;
+	delete resume;
+	delete	pause_screen;
+	delete	massage;
+	delete new_game;
+	delete load_game;
+	delete save_massage;
+	delete yes;
+	delete no;
+}
+
+
+void Main::menu()
+{
+	int x = 0, y = 0; 
+	bool but_play = false;
+	bool press = false;
+	FILE* checkpoint=NULL;
+	fopen_s(&checkpoint,"Data/checkpoint.bin", "rb");
+	if (checkpoint == NULL) puts("NO FILE");
+	while (quit != true)
+	{
+		setup->begin();
+			back->draw();
+			
+			myHero->playAnimation(0, 1, 0, 200);
+			myHero->draw();
+			if (setup->getEvent()->type == SDL_MOUSEMOTION) {  // если было движение установим новые координаты курсора
+				x = setup->getEvent()->motion.x;
+				y = setup->getEvent()->motion.y;
+
+			}
+			if ((x > play->getX()) && (x < play->getX() + 280) && (y > play->getY()) && (y < play->getY() + 150)) { // Кнопка play
+				play->playOne(1, 1, 0);
+				if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+					if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+						 but_play = true;
+					}
+				}
+			}
+			else play->playOne(0, 0, 0);
+
+			if ((x > exit->getX() && (x < exit->getX() + 280) && (y > exit->getY()) && (y < exit->getY() + 150))) { // Кнопка exit
+				exit->playOne(1, 1, 0);
+				if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+					if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+						quit = true;
+					}
+				}
+			}
+			else exit->playOne(0, 0, 0);
+			if (checkpoint == NULL && but_play) { if (setup->getEvent()->type == SDL_MOUSEBUTTONUP) GameLoop(); }
+			else if(but_play)
+			{ // дочернее play
+				play->setX(GETOUT);
+				exit->setX(GETOUT);
+				load_game->draw();
+				new_game->draw();
+				massage->draw();
+				if ((x > load_game->getX()) && (x < load_game->getX() + 280 * 0.7) && (y > load_game->getY()) && (y < load_game->getY() + 150)) { // Кнопка LOAD GAME
+					load_game->playOne(1, 1, 0);
+					if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+						if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+							fread(&lvl->lvl_num, 1, 1, check-point);
+							fread(&lvl->click, 1, 1, check-point);
+							fclose(checkpoint);
+							press = true;
+						}
+					}
+				}
+				else load_game->playOne(0, 0, 0);
+				if ((x > new_game->getX() && (x < new_game->getX() + 280 * 0.7) && (y > new_game->getY()) && (y < new_game->getY() + 150))) { // Кнопка NEW GAME
+					new_game->playOne(1, 1, 0);
+					if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+						if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+								if (checkpoint != NULL) fclose(checkpoint);
+										re-move("Data/checkpoint.bin");
+										press = true;
+								}
+						}
+					}
+					
+				else new_game->playOne(0, 0, 0);
+				if (press && setup->getEvent()->type == SDL_MOUSEBUTTONUP) GameLoop();
+
+			}
+			
+			play->draw();
+			exit->draw();
+			sound(x, y);
+	
+		setup->end();
+	}
+}
+
+void Main::sound(int x, int y)
+{
+	static bool key_pressed = false;
+	static int position = 0;
+
+	if ((x > volume->getX()) && (x < volume->getX() + 50) && (y > volume->getY()) && (y < volume->getY() + 70)) { // Кнопка музыки
+		if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+			if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+				key_pressed = true;
+			}
+		}
+	}
+	volume->playOne(position, position, 0);
+	volume->draw();
+	if (key_pressed) {
+		if (setup->getEvent()->type == SDL_MOUSEBUTTONUP)
+		{
+			if (!position)
+			{
+				position = 2;
+				Mix_PauseMusic();
+				Mix_Volume(-1, 0);
+			}
+			else
+			{
+				position = 0;
+				Mix_ResumeMusic();
+				Mix_Volume(-1, MIX_MAX_VOLUME );
+			}
+			key_pressed = false;
+
+		}
+	}
+}
+
+bool Main::lvl_pause(int x, int y)
+{
+	static bool  exit_pause = false, key_pressed = false, but_play = false;
+	bool save_toFile = false;
+	exit->setPosition(SCREEN_W / 6 + 380, SCREEN_H / 1.6);
+	pause_screen->draw();
+	if ((x > resume->getX()) && (x < resume->getX() + 280) && (y > resume->getY()) && (y < resume->getY() + 120)) { // Кнопка resume
+		resume->playOne(1, 1, 0);
+		if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+			if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+				key_pressed = true; but_play = true;
+			}
+		}
+
+	}
+	else resume->playOne(0, 0, 0);
+	if ((x > exit->getX() && (x < exit->getX() + 280) && (y > exit->getY()) && (y < exit->getY() + 120))) { // Кнопка exit
+		exit->playOne(1, 1, 0);
+		if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+			if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+				exit_pause = true;
+				if (lvl->lvl_num == 0) quit = true;
+			}
+		}
+	}
+	else exit->playOne(0, 0, 0);
+
+
+	if (exit_pause && lvl->lvl_num) {
+		resume->setX(GETOUT);
+		exit->setX(GETOUT);
+		save_massage->draw();
+		yes->draw();
+		no->draw();
+		if ((x > yes->getX()) && (x < yes->getX() + 247 * 0.4) && (y > yes->getY()) && (y < yes->getY() + 400 * 0.4)) { // Кнопка yes
+			yes->playOne(1, 1, 0);
+			if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+				if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+					puts("save to file");
+					fopen_s(&file_out, "Data/checkpoint.bin", "wb");
+					if (file_out == NULL) puts("Can`t create file");
+					fwrite(&lvl->lvl_num, 1, 1, file_out);
+					fwrite(&lvl->click, 1, 1, file_out);
+					fclose(file_out);
+					quit = true;
+				}
+			}
+		}
+		else yes->playOne(0, 0, 0);
+
+		if ((x > no->getX() && (x < no->getX() + 247 * 0.4) && (y > no->getY()) && (y < no->getY() + 400 * 0.4))) { // Кнопка no
+			no->playOne(1, 1, 0);
+			if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+				if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+					quit = true;
+				}
+			}
+		}
+		else no->playOne(0, 0, 0);
+	}
+	if (setup->getEvent()->type == SDL_MOUSEBUTTONUP && key_pressed)
+	{
+		but_play = false;
+		key_pressed = false;
+		return true;
+	}
+
+	resume->draw();
+	exit->draw();
+	return false;
+}
+
+void Main::victory(int x, int y)
+{
+	static bool key_pressed = false, first = true;
+	if (first)
+	{
+		exit->setPosition(SCREEN_W / 6 + 465, SCREEN_H / 1.6 );
+	}
+	if ((x > exit->getX() && (x < exit->getX() + 280) && (y > exit->getY()) && (y < exit->getY() + 120))) { // Кнопка exit
+		exit->playOne(1, 1, 0);
+		if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+			if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+				quit = true; return;
+			}
+		}
+	}
+	else exit->playOne(0, 0, 0);
+	exit->draw();
+
+}
+
+
+
+void Main::GameLoop()
+{
+	int x = 0, y = 0;
+	bool system_pause = false;
+	bool key_press = false;
+	while (quit != true)
+	{
+		if (setup->getEvent()->type == SDL_MOUSEMOTION) {  // если было движение установим новые координаты курсора
+			x = setup->getEvent()->motion.x;
+			y = setup->getEvent()->motion.y;
+
+		}
+		setup->begin();
+		if (!system_pause)lvl->update();
+		if (!lvl->final)
+		{
+			if ((x > pause->getX() && (x < pause->getX() + 50) && (y > pause->getY()) && (y < pause->getY() + 70))) { // Кнопка pause
+				pause->playOne(1, 1, 0);
+				if (setup->getEvent()->type == SDL_MOUSEBUTTONDOWN) {
+					if (setup->getEvent()->button.button == SDL_BUTTON_LEFT) {
+						key_press = true;
+					}
+				}
+				if (key_press) if (setup->getEvent()->type == SDL_MOUSEBUTTONUP)
+				{
+					system_pause = true;
+					key_press = false;
+					Mix_PauseMusic();
+					Mix_Volume(-1, 0);
+				}
+			}
+			else pause->playOne(0, 0, 0);
+			pause->draw();
+		}
+		sound(x, y);
+		if (lvl->final) victory(x,y);
+		if (system_pause ) if (lvl_pause(x, y))
+		{
+			puts("return true");
+			system_pause = false;
+			Mix_ResumeMusic();
+			Mix_Volume(-1, MIX_MAX_VOLUME );
+		}
+		setup->end();
+		SDL_Delay(5);
+	}
+}
+
 
